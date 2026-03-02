@@ -31,12 +31,39 @@ def home():
 @app.route("/shorten", methods=["POST"])
 def shorten_url():
     data = request.get_json()
+
+    # Validate input
+    if not data or "url" not in data:
+        return jsonify({"error":"URL is required"}), 400
+    
     original_url = data.get("url")
 
+    # Generate short code
+    short_code = generate_short_code()
+
+    # Connect to database
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            "INSERT INTO urls (original_url, short_code) VALUES (?, ?)",
+            (original_url, short_code)
+        )
+
+        conn.commit()
+    
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "Short code collision occurred"}), 500
+    
+    finally:
+        conn.close()
+
+    short_url = f"http://127.0.0.1:5000/{short_code}"
+    
     return jsonify({
-        "message": "URL received",
-        "original_url": original_url
-    })
+        "short_url": short_url,
+    }), 201
 
 if __name__ == "__main__":
     init_db()
