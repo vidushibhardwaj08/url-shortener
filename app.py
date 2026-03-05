@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 import sqlite3
 import random
 import string
@@ -64,6 +64,26 @@ def shorten_url():
     return jsonify({
         "short_url": short_url,
     }), 201
+
+@app.route("/<short_code>")
+def redirect_to_url(short_code):
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT original_url FROM urls WHERE short_code = ?",
+        (short_code,)
+    )
+
+    result = cursor.fetchone()
+    
+    conn.close()
+
+    if result:
+        original_url = result[0]
+        return redirect(original_url)
+    else:
+        return jsonify({"error": "URL not found"}), 404
 
 if __name__ == "__main__":
     init_db()
