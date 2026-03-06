@@ -2,12 +2,17 @@ from flask import Flask, request, jsonify, redirect
 import sqlite3
 import random
 import string
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 
 def generate_short_code(length=6):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
+
+def is_valid_url(url):
+    parsed = urlparse(url)
+    return all([parsed.scheme, parsed.netloc])
 
 def init_db():
     conn = sqlite3.connect("database.db")
@@ -37,6 +42,9 @@ def shorten_url():
         return jsonify({"error":"URL is required"}), 400
     
     original_url = data.get("url")
+
+    if not is_valid_url(original_url):
+        return jsonify({"error": "Invalid URL"}), 400
 
     # Connect to database
     conn = sqlite3.connect("database.db")
