@@ -38,12 +38,24 @@ def shorten_url():
     
     original_url = data.get("url")
 
-    # Generate short code
-    short_code = generate_short_code()
-
     # Connect to database
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
+
+    # Generate unique short code
+    while True:
+        short_code = generate_short_code()
+
+        cursor.execute(
+            "SELECT id FROM urls WHERE short_code = ?",
+            (short_code,)
+        )
+
+        existing = cursor.fetchone()
+
+        if not existing:
+            break
+
 
     try:
         cursor.execute(
