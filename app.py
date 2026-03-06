@@ -22,10 +22,11 @@ def init_db():
         CREATE TABLE IF NOT EXISTS urls (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             original_url TEXT NOT NULL,
-            short_code TEXT NOT NULL UNIQUE
-                )
+            short_code TEXT NOT NULL UNIQUE,
+            clicks INTEGER DEFAULT 0
+            )
         """)
-    
+
     conn.commit()
     conn.close()
 
@@ -91,16 +92,23 @@ def redirect_to_url(short_code):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT original_url FROM urls WHERE short_code = ?",
+        "SELECT original_url, clicks FROM urls WHERE short_code = ?",
         (short_code,)
     )
 
     result = cursor.fetchone()
     
-    conn.close()
-
     if result:
         original_url = result[0]
+
+        cursor.execute(
+            "UPDATE urls SET clicks = clicks + 1 WHERE short_code = ?",
+            (short_code,)
+        )
+
+        conn.commit()
+        conn.close()
+
         return redirect(original_url)
     else:
         return jsonify({"error": "URL not found"}), 404
