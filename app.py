@@ -23,7 +23,8 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             original_url TEXT NOT NULL,
             short_code TEXT NOT NULL UNIQUE,
-            clicks INTEGER DEFAULT 0
+            clicks INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -83,8 +84,37 @@ def shorten_url():
     short_url = f"http://127.0.0.1:5000/{short_code}"
     
     return jsonify({
-        "short_url": short_url,
+    "original_url": original_url,
+    "short_code": short_code,
+    "short_url": short_url
     }), 201
+
+@app.route("/stats/<short_code>")
+def get_stats(short_code):
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT original_url, clicks FROM urls WHERE short_code = ?",
+        (short_code,)
+    )
+
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if result:
+        original_url = result[0]
+        clicks = result[1]
+
+        return jsonify({
+            "short_code": short_code,
+            "original_url":original_url,
+            "clicks":clicks
+        })
+    
+    else:
+        return jsonify({"error": "Short URL not found"}), 404
 
 @app.route("/<short_code>")
 def redirect_to_url(short_code):
